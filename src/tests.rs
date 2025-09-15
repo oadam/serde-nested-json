@@ -29,6 +29,32 @@ struct Nested {
 }
 
 #[test]
+fn it_should_handle_null() {
+    let nested = r#"
+        {
+            "some": "\"here\"",
+            "null": null
+        }
+    "#;
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+    struct NullTest {
+        #[serde(with = "serde_nested_json")]
+        some: Option<String>,
+        #[serde(with = "serde_nested_json")]
+        null: Option<String>,
+    }
+
+    assert_eq!(
+        NullTest {
+            some: Some("here".into()),
+            null: None,
+        },
+        serde_json::from_str(nested).unwrap(),
+    )
+}
+
+#[test]
 fn it_should_handle_options_without_values_as_null() {
     let nested = r#"
         {

@@ -32,7 +32,7 @@ where
     type Value = T;
 
     fn expecting(&self, formatter: &mut Formatter) -> FmtResult {
-        formatter.write_str("expected a string")
+        formatter.write_str("a string or null")
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -44,6 +44,23 @@ where
             .map_err(E::custom)?;
 
         Ok(inner)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        // `null` maps naturally to T::deserialize(()).
+        // This works when T is `Option<_>` (becomes None).
+        T::deserialize(serde::de::value::UnitDeserializer::new())
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        // same as visit unit
+        T::deserialize(serde::de::value::UnitDeserializer::new())
     }
 }
 
