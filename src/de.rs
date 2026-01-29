@@ -21,7 +21,15 @@ pub fn unnest_vec<'de, D: Deserializer<'de>, T: DeserializeOwned>(
 ) -> Result<Vec<T>, D::Error> {
     Vec::<String>::deserialize(d)?
         .into_iter()
-        .map(|s| serde_json::from_str(&s).map_err(serde::de::Error::custom))
+        .enumerate()
+        .map(|(idx, s)| {
+            serde_json::from_str(&s).map_err(|e| {
+                serde::de::Error::custom(format!(
+                    "error parsing nested JSON string at index {}: {} (note: line/column are relative to the nested string, not the outer document)",
+                    idx, e
+                ))
+            })
+        })
         .collect::<Result<Vec<_>, _>>()
 }
 
@@ -41,7 +49,12 @@ where
     {
         let reader = VecDeque::from(v.to_string().into_bytes());
         let inner = Self::Value::deserialize(&mut serde_json::Deserializer::from_reader(reader))
-            .map_err(E::custom)?;
+            .map_err(|e| {
+                E::custom(format!(
+                    "error parsing nested JSON string: {} (note: line/column are relative to the nested string, not the outer document)",
+                    e
+                ))
+            })?;
 
         Ok(inner)
     }
